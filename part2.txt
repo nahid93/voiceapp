@@ -1,0 +1,250 @@
+VOICE_SPEED = speed_map.get(choice, 1.0)
+
+os.makedirs("output", exist_ok=True)
+
+DOWNLOAD_DIR = (
+    "/storage/emulated/0/Download/Adnan Story"
+)
+
+os.makedirs(
+    DOWNLOAD_DIR,
+    exist_ok=True
+)
+
+# =========================
+# CLEAN OLD CHUNKS
+# =========================
+
+for f in glob.glob("chunk_*.txt"):
+
+    try:
+        os.remove(f)
+    except:
+        pass
+
+for f in glob.glob("output/chunk_*.mp3"):
+
+    try:
+        os.remove(f)
+    except:
+        pass
+
+if os.path.exists("output/list.txt"):
+
+    try:
+        os.remove("output/list.txt")
+    except:
+        pass
+
+start_time = time.time()
+
+# =========================
+# READ STORY
+# =========================
+
+print("\nStory Input Mode")
+print("1. Use story.txt")
+print("2. Paste Story Here")
+
+story_mode = input("Choose (1-2): ").strip()
+
+try:
+
+    if story_mode == "2":
+
+        print("\nPaste your story below.")
+        print("Type END on a new line when finished.\n")
+
+        lines = []
+
+        while True:
+
+            line = input()
+
+            if line.strip() == "END":
+                break
+
+            lines.append(line)
+
+        text = "\n".join(lines)
+
+    else:
+
+        with open(
+            "story.txt",
+            "r",
+            encoding="utf-8"
+        ) as f:
+
+            text = f.read()
+
+except FileNotFoundError:
+
+    print("")
+    print("ERROR: story.txt not found")
+    exit()
+
+char_count = len(text)
+
+print("")
+print(f"Characters: {char_count}")
+
+estimated_minutes = max(
+    1,
+    round(char_count / 800)
+)
+
+print(
+    f"Estimated Duration: "
+    f"{estimated_minutes} min"
+)
+
+# =========================
+# SMART SPLIT
+# =========================
+
+print("")
+print("Smart splitting...")
+
+sentences = (
+    text
+    .replace("\n", " ")
+    .split("।")
+)
+
+chunks = []
+current = ""
+
+for sentence in sentences:
+
+    sentence = sentence.strip()
+
+    if not sentence:
+        continue
+
+    sentence = sentence + "।"
+
+    if (
+        len(current)
+        + len(sentence)
+        < CHUNK_SIZE
+    ):
+
+        current += sentence + " "
+
+    else:
+
+        chunks.append(
+            current.strip()
+        )
+
+        current = sentence + " "
+
+if current.strip():
+
+    chunks.append(
+        current.strip()
+    )
+
+print(
+    f"Total Chunks: "
+    f"{len(chunks)}"
+)
+
+for index, chunk in enumerate(
+    chunks,
+    start=1
+):
+
+    filename = (
+        f"chunk_{index:03}.txt"
+    )
+
+    with open(
+        filename,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        f.write(chunk)
+# =========================
+# GENERATE AUDIO
+# =========================
+
+print("")
+print("Generating audio...")
+
+total = len(chunks)
+
+for num in range(
+    1,
+    total + 1
+):
+    txt_file = (
+        f"chunk_{num:03}.txt"
+    )
+
+    mp3_file = (
+        f"output/chunk_{num:03}.mp3"
+    )
+
+    percent = int(
+        (num / total) * 100
+    )
+
+    elapsed = (
+        time.time()
+        - start_time
+    )
+
+    if num > 1:
+
+        avg = elapsed / (num - 1)
+
+        eta = int(
+            avg *
+            (total - num + 1)
+        )
+
+    else:
+
+        eta = 0
+
+    print("")
+    print(
+        f"[{num}/{total}] "
+        f"{percent}%"
+    )
+
+    print(
+        f"ETA: {eta} sec"
+    )
+
+    # Resume Mode
+
+    if os.path.exists(
+        mp3_file
+    ):
+
+        print(
+            "Already exists"
+        )
+
+        continue
+
+    with open(
+        txt_file,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
+        chunk_text = (
+            f.read()
+        )
+
+    success = False
+
+    # Retry System
+
+    for attempt in range(
+        1,

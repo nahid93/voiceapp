@@ -1,0 +1,4 @@
+output/
+*.mp3
+*.zip
+__pycache__/
