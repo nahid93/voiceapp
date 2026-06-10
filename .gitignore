@@ -2,3 +2,10 @@ output/
 *.mp3
 *.zip
 __pycache__/
+
+assets/
+output/
+__pycache__/
+*.mp3
+*.zip
+
