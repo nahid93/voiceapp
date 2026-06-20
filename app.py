@@ -223,29 +223,29 @@ else:
     VOICE_NAME = "hi-IN-MadhurNeural"
 
 if style_choice == "1":
-    VOICE_RATE = "-5%"
-    VOICE_PITCH = "+2Hz"
+    VOICE_RATE = "+10%"
+    VOICE_PITCH = "+6Hz"
     STYLE_NAME = "Normal"
 
 elif style_choice == "2":
-    VOICE_RATE = "-15%"
-    VOICE_PITCH = "+4Hz"
+    VOICE_RATE = "+15%"
+    VOICE_PITCH = "+8Hz"
     STYLE_NAME = "Storytelling"
 
 elif style_choice == "3":
-    VOICE_RATE = "-20%"
-    VOICE_PITCH = "+6Hz"
+    VOICE_RATE = "+20%"
+    VOICE_PITCH = "+10Hz"
     STYLE_NAME = "Dramatic"
 
 else:
-    VOICE_RATE = "-5%"
-    VOICE_PITCH = "+2Hz"
+    VOICE_RATE = "+10%"
+    VOICE_PITCH = "+6Hz"
     STYLE_NAME = "Normal"
 
 speed_map = {
-    "1": 0.9,
-    "2": 1.0,
-    "3": 1.2
+    "1": 1.0,
+    "2": 1.15,
+    "3": 1.30
 }
 
 VOICE_SPEED = speed_map.get(choice, 1.0)
@@ -495,24 +495,18 @@ for num in range(
     success = False
 
     # Retry System
-
-    for attempt in range(
-        1,
-        4
-    ):
-
+    for attempt in range(1, 4):
         try:
-
             print(
-                f"Attempt "
-                f"{attempt}/3"
+                f"Attempt {attempt}/3"
             )
+
             communicate = edge_tts.Communicate(
-            text=chunk_text,
-            voice=VOICE_NAME,
-            rate=VOICE_RATE,
-            pitch=VOICE_PITCH
-            ) 
+                text=chunk_text,
+                voice=VOICE_NAME,
+                rate=VOICE_RATE,
+                pitch=VOICE_PITCH
+            )
 
             asyncio.run(
                 communicate.save(
@@ -524,14 +518,14 @@ for num in range(
             break
 
         except Exception as e:
-
-            print(
-                "Retrying..."
-            )
-
+            print("")
+            print("ERROR DETAILS:")
+            print(repr(e))
+            print("")
+            print("Retrying...")
             time.sleep(2)
 
-    if not success:
+if not success:
 
         print("")
         print(
@@ -598,6 +592,26 @@ subprocess.run([
     "copy",
     final_mp3
 ])
+
+print("")
+print("Removing silence...")
+
+clean_file = final_mp3.replace(
+    ".mp3",
+    "_clean.mp3"
+)
+
+subprocess.run([
+    "ffmpeg",
+    "-y",
+    "-i",
+    final_mp3,
+    "-af",
+    "silenceremove=stop_periods=-1:stop_duration=0.3:stop_threshold=-40dB",
+    clean_file
+])
+
+final_mp3 = clean_file
 
 # =========================
 # SPEED CONTROL
@@ -680,6 +694,8 @@ subprocess.run([
     "-y",
     "-i",
     final_mp3,
+    "-af",
+    "silenceremove=stop_periods=-1:stop_duration=0.3:stop_threshold=-40dB,volume=8dB",
     "-ar", "44100",
     "-ac", "2",
     "-b:a", "128k",
